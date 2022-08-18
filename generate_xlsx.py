@@ -78,8 +78,9 @@ with xlsxwriter.Workbook("timetable.xlsx") as workbook:
         row += 1
         for activity_name, teams in zip(ACTIVITY_NAMES, round_activities):
             worksheet.write(row, 0, activity_name, activity_name_format)
-            for i, team in enumerate(teams):
-                worksheet.write(row, i + 1, TEAM_NAMES[team], team_name_format)
+            names = sorted(TEAM_NAMES[team] for team in teams)
+            for i, name in enumerate(names):
+                worksheet.write(row, i + 1, name, team_name_format)
 
             row += 1
 
