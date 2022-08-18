@@ -21,13 +21,23 @@ print("Building constraints...")
 
 """
 x_i_j_k is true iff team i is in activity k at time j
+
+Apparently int variables constrained to 0 or 1 are a lot faster than bool variables for this problem.
+Running time with bool variables: ~22 min
+Running time with int variables: ~17 seconds
 """
 assignments = [
-    [[z4.Bool(f"x_{i}_{j}_{k}") for k in range(rounds)] for j in range(rounds)]
+    [[z4.Int(f"x_{i}_{j}_{k}") for k in range(rounds)] for j in range(rounds)]
     for i in range(TEAMS)
 ]
 
 constraints = []
+
+for i in range(TEAMS):
+    for j in range(rounds):
+        for k in range(rounds):
+            constraints.append(0 <= assignments[i][j][k])
+            constraints.append(assignments[i][j][k] <= 1)
 
 """
 Simplification: We can assume the initial round of assignments
@@ -35,14 +45,14 @@ Simplification: We can assume the initial round of assignments
 for i in range(TEAMS):
     first_k = i // TEAMS_PER_ACTIVITY
     for k in range(rounds):
-        constraints.append(assignments[i][0][k] == (k == first_k))
+        constraints.append(assignments[i][0][k] == int(k == first_k))
 
 """
 Simplification: We can assume that team 0 participates in the activities in order
 """
 for j in range(rounds):
     for k in range(rounds):
-        constraints.append(assignments[0][j][k] == (k == j))
+        constraints.append(assignments[0][j][k] == int(k == j))
 
 
 """
@@ -50,7 +60,7 @@ Each team must be assigned to exactly one activity at each time
 """
 for i in range(TEAMS):
     for j in range(rounds):
-        assign_count = z4_sum(z4.BoolToInt(x) for x in assignments[i][j])
+        assign_count = z4_sum(assignments[i][j])
         constraints.append(assign_count == 1)
 
 """
@@ -58,7 +68,7 @@ Each team must be on a different activity every time
 """
 for i in range(TEAMS):
     for k in range(rounds):
-        assign_count = z4_sum(z4.BoolToInt(assignments[i][j][k]) for j in range(rounds))
+        assign_count = z4_sum(assignments[i][j][k] for j in range(rounds))
         constraints.append(assign_count == 1)
 
 
@@ -67,9 +77,7 @@ Each activity at every time should have exactly TEAMS_PER_ACTIVITY teams assigne
 """
 for j in range(rounds):
     for k in range(rounds):
-        teams_on_activity = z4_sum(
-            z4.BoolToInt(assignments[i][j][k]) for i in range(TEAMS)
-        )
+        teams_on_activity = z4_sum(assignments[i][j][k] for i in range(TEAMS))
         constraints.append(teams_on_activity == TEAMS_PER_ACTIVITY)
 
 
@@ -81,7 +89,7 @@ which is the break activity
 for i1 in range(TEAMS):
     for i2 in range(i1 + 1, TEAMS):
         same_activity_count = z4_sum(
-            z4.BoolToInt(z4.And(assignments[i1][j][k], assignments[i2][j][k]))
+            assignments[i1][j][k] * assignments[i2][j][k]
             for j in range(rounds)
             for k in range(rounds - 1)  # Exclude break activity
         )
@@ -103,7 +111,7 @@ with Progress(SpinnerColumn(), TimeElapsedColumn()) as progress:
 def get_activity(i: int, j: int):
     result_k = -1
     for k in range(rounds):
-        if results[i][j][k]:
+        if results[i][j][k] == 1:
             assert result_k == -1
             result_k = k
 
