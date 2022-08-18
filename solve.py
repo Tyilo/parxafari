@@ -75,13 +75,15 @@ for j in range(rounds):
 
 """
 Each pair of teams should only be at the same activity max 1 time
+However we don't care about teams meeting each other in the last activity,
+which is the break activity
 """
 for i1 in range(TEAMS):
     for i2 in range(i1 + 1, TEAMS):
         same_activity_count = z4_sum(
             z4.BoolToInt(z4.And(assignments[i1][j][k], assignments[i2][j][k]))
             for j in range(rounds)
-            for k in range(rounds - 1)
+            for k in range(rounds - 1)  # Exclude break activity
         )
         constraints.append(same_activity_count <= 1)
 
