@@ -1,4 +1,5 @@
 import json
+import random
 
 import xlsxwriter
 
@@ -49,6 +50,9 @@ ROUND_NAMES = [
 
 with open("solution.json") as f:
     solution = json.load(f)
+
+
+random.shuffle(TEAM_NAMES)
 
 
 with xlsxwriter.Workbook("timetable.xlsx") as workbook:
